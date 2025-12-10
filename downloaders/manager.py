@@ -11,6 +11,7 @@ from typing import Dict, Optional, Callable
 
 from .direct import DirectDownloader
 from .mega import MegaDownloader
+from .usersdrive import UsersDriveDownloader
 
 
 class DownloadManager:
@@ -25,6 +26,7 @@ class DownloadManager:
         # Registrar downloaders disponíveis
         self.downloaders = [
             MegaDownloader(download_folder),
+            UsersDriveDownloader(download_folder),
             DirectDownloader(download_folder),  # Fallback para links diretos
         ]
     
