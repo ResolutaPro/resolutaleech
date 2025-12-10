@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResolutaLeech - Gerenciador de Downloads</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/lucide-static@0.16.29/font/lucide.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-card-hover: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --success: #22c55e;
+            --error: #ef4444;
+            --warning: #f59e0b;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #1a1a2e 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+        }
+        
+        .glass-card {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(99, 102, 241, 0.3);
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, var(--primary) 0%, #8b5cf6 100%);
+            transition: width 0.3s ease;
+        }
+        
+        .download-item {
+            transition: all 0.3s ease;
+        }
+        
+        .download-item:hover {
+            background: var(--bg-card-hover);
+        }
+        
+        .status-downloading { color: var(--primary); }
+        .status-completed { color: var(--success); }
+        .status-error { color: var(--error); }
+        .status-cancelled { color: var(--warning); }
+        
+        .animate-pulse-slow {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        .file-item:hover {
+            background: var(--bg-card-hover);
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <h1 class="text-5xl font-bold bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent mb-2">
+                ResolutaLeech
+            </h1>
+            <p class="text-gray-400 text-lg">Gerenciador de Downloads Moderno</p>
+        </header>
+
+        <!-- System Info -->
+        <div id="system-info" class="glass-card rounded-2xl p-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="text-center">
+                    <p class="text-gray-400 text-sm">Espaço Livre</p>
+                    <p id="disk-free" class="text-2xl font-bold text-green-400">--</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-gray-400 text-sm">Espaço Usado</p>
+                    <p id="disk-used" class="text-2xl font-bold text-yellow-400">--</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-gray-400 text-sm">Downloads Ativos</p>
+                    <p id="active-downloads" class="text-2xl font-bold text-indigo-400">0</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-gray-400 text-sm">Megatools</p>
+                    <p id="megatools-status" class="text-2xl font-bold">--</p>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="bg-gray-700 rounded-full h-3 overflow-hidden">
+                    <div id="disk-progress" class="progress-bar h-full" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Download Form -->
+        <div class="glass-card rounded-2xl p-8 mb-8">
+            <h2 class="text-2xl font-semibold mb-6 flex items-center gap-2">
+                <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Novo Download
+            </h2>
+            <form id="download-form" class="space-y-4">
+                <div>
+                    <label class="block text-gray-400 text-sm mb-2">URL do Arquivo</label>
+                    <input type="url" id="url-input" 
+                           class="w-full bg-gray-800 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition"
+                           placeholder="https://mega.nz/file/... ou qualquer link direto"
+                           required>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-400 text-sm mb-2">Nome do Arquivo (opcional)</label>
+                        <input type="text" id="filename-input"
+                               class="w-full bg-gray-800 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition"
+                               placeholder="Deixe vazio para detectar automaticamente">
+                    </div>
+                    <div class="flex items-end">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="use-megatools" class="w-5 h-5 rounded bg-gray-800 border-gray-600 text-indigo-500 focus:ring-indigo-500">
+                            <span class="text-gray-400">Usar Megatools (para MEGA.nz)</span>
+                        </label>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary w-full py-4 rounded-xl font-semibold text-lg flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Iniciar Download
+                </button>
+            </form>
+        </div>
+
+        <!-- Active Downloads -->
+        <div class="glass-card rounded-2xl p-8 mb-8">
+            <h2 class="text-2xl font-semibold mb-6 flex items-center gap-2">
+                <svg class="w-6 h-6 text-indigo-400 animate-pulse-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                Downloads Ativos
+            </h2>
+            <div id="downloads-list" class="space-y-4">
+                <p class="text-gray-500 text-center py-8">Nenhum download ativo</p>
+            </div>
+        </div>
+
+        <!-- Files List -->
+        <div class="glass-card rounded-2xl p-8">
+            <h2 class="text-2xl font-semibold mb-6 flex items-center gap-2">
+                <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                </svg>
+                Arquivos Baixados
+            </h2>
+            <div id="files-list" class="space-y-2">
+                <p class="text-gray-500 text-center py-8">Nenhum arquivo encontrado</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="text-center mt-12 text-gray-500">
+            <p>ResolutaLeech &copy; 2025 - Alternativa moderna ao Rapidleech</p>
+        </footer>
+    </div>
+
+    <script>
+        // Estado da aplicação
+        let downloads = {};
+        let updateInterval = null;
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSystemInfo();
+            loadDownloads();
+            loadFiles();
+            
+            // Atualizar a cada 2 segundos
+            updateInterval = setInterval(() => {
+                loadSystemInfo();
+                loadDownloads();
+            }, 2000);
+        });
+
+        // Formulário de download
+        document.getElementById('download-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const url = document.getElementById('url-input').value.trim();
+            const filename = document.getElementById('filename-input').value.trim();
+            const useMegatools = document.getElementById('use-megatools').checked;
+            
+            if (!url) return;
+            
+            try {
+                const response = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url, filename, use_megatools: useMegatools })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('url-input').value = '';
+                    document.getElementById('filename-input').value = '';
+                    loadDownloads();
+                } else {
+                    alert('Erro: ' + (data.error || 'Erro desconhecido'));
+                }
+            } catch (error) {
+                alert('Erro de conexão: ' + error.message);
+            }
+        });
+
+        // Carregar informações do sistema
+        async function loadSystemInfo() {
+            try {
+                const response = await fetch('/api/system');
+                const data = await response.json();
+                
+                document.getElementById('disk-free').textContent = data.disk.free_formatted;
+                document.getElementById('disk-used').textContent = data.disk.used_formatted;
+                document.getElementById('active-downloads').textContent = data.active_downloads;
+                document.getElementById('disk-progress').style.width = data.disk.percent_used + '%';
+                
+                const megatoolsEl = document.getElementById('megatools-status');
+                if (data.megatools_available) {
+                    megatoolsEl.textContent = '✓';
+                    megatoolsEl.className = 'text-2xl font-bold text-green-400';
+                } else {
+                    megatoolsEl.textContent = '✗';
+                    megatoolsEl.className = 'text-2xl font-bold text-red-400';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar info do sistema:', error);
+            }
+        }
+
+        // Carregar lista de downloads
+        async function loadDownloads() {
+            try {
+                const response = await fetch('/api/downloads');
+                const data = await response.json();
+                
+                downloads = {};
+                data.forEach(d => downloads[d.id] = d);
+                
+                renderDownloads(data);
+                
+                // Atualizar arquivos se algum download completou
+                if (data.some(d => d.status === 'completed')) {
+                    loadFiles();
+                }
+            } catch (error) {
+                console.error('Erro ao carregar downloads:', error);
+            }
+        }
+
+        // Renderizar lista de downloads
+        function renderDownloads(downloadsList) {
+            const container = document.getElementById('downloads-list');
+            
+            if (downloadsList.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">Nenhum download ativo</p>';
+                return;
+            }
+            
+            container.innerHTML = downloadsList.map(d => `
+                <div class="download-item bg-gray-800/50 rounded-xl p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex-1 min-w-0">
+                            <p class="font-medium truncate">${d.filename || 'Baixando...'}</p>
+                            <p class="text-sm text-gray-400 truncate">${d.url}</p>
+                        </div>
+                        <div class="flex items-center gap-2 ml-4">
+                            <span class="status-${d.status} text-sm font-medium">${getStatusText(d.status)}</span>
+                            ${d.status === 'downloading' ? `
+                                <button onclick="cancelDownload('${d.id}')" class="text-red-400 hover:text-red-300 p-1">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                    ${d.status === 'downloading' ? `
+                        <div class="mt-3">
+                            <div class="flex justify-between text-sm text-gray-400 mb-1">
+                                <span>${formatSize(d.downloaded)} / ${formatSize(d.total)}</span>
+                                <span>${formatSpeed(d.speed)}</span>
+                            </div>
+                            <div class="bg-gray-700 rounded-full h-2 overflow-hidden">
+                                <div class="progress-bar h-full" style="width: ${d.progress}%"></div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${d.status === 'error' ? `
+                        <p class="text-red-400 text-sm mt-2">${d.error}</p>
+                    ` : ''}
+                    ${d.status === 'completed' ? `
+                        <div class="mt-2">
+                            <a href="/api/download/${d.id}/file" class="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                </svg>
+                                Baixar arquivo
+                            </a>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        // Carregar lista de arquivos
+        async function loadFiles() {
+            try {
+                const response = await fetch('/api/files');
+                const files = await response.json();
+                
+                const container = document.getElementById('files-list');
+                
+                if (files.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500 text-center py-8">Nenhum arquivo encontrado</p>';
+                    return;
+                }
+                
+                container.innerHTML = files.map(f => `
+                    <div class="file-item flex items-center justify-between bg-gray-800/50 rounded-xl p-4 transition">
+                        <div class="flex items-center gap-3 flex-1 min-w-0">
+                            <svg class="w-8 h-8 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <div class="min-w-0">
+                                <p class="font-medium truncate">${f.name}</p>
+                                <p class="text-sm text-gray-400">${f.size_formatted}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 ml-4">
+                            <a href="/files/${encodeURIComponent(f.name)}" class="text-indigo-400 hover:text-indigo-300 p-2" title="Baixar">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                </svg>
+                            </a>
+                            <button onclick="deleteFile('${f.name}')" class="text-red-400 hover:text-red-300 p-2" title="Deletar">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Erro ao carregar arquivos:', error);
+            }
+        }
+
+        // Cancelar download
+        async function cancelDownload(id) {
+            if (!confirm('Cancelar este download?')) return;
+            
+            try {
+                await fetch(`/api/download/${id}`, { method: 'DELETE' });
+                loadDownloads();
+            } catch (error) {
+                alert('Erro ao cancelar: ' + error.message);
+            }
+        }
+
+        // Deletar arquivo
+        async function deleteFile(filename) {
+            if (!confirm(`Deletar "${filename}"?`)) return;
+            
+            try {
+                await fetch(`/api/files/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+                loadFiles();
+            } catch (error) {
+                alert('Erro ao deletar: ' + error.message);
+            }
+        }
+
+        // Helpers
+        function getStatusText(status) {
+            const texts = {
+                'starting': 'Iniciando...',
+                'downloading': 'Baixando',
+                'completed': 'Concluído',
+                'error': 'Erro',
+                'cancelled': 'Cancelado'
+            };
+            return texts[status] || status;
+        }
+
+        function formatSize(bytes) {
+            if (!bytes || bytes === 0) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            let i = 0;
+            let size = bytes;
+            while (size >= 1024 && i < units.length - 1) {
+                size /= 1024;
+                i++;
+            }
+            return size.toFixed(2) + ' ' + units[i];
+        }
+
+        function formatSpeed(bytesPerSec) {
+            if (!bytesPerSec || bytesPerSec === 0) return '0 B/s';
+            return formatSize(bytesPerSec) + '/s';
+        }
+    </script>
+</body>
+</html>

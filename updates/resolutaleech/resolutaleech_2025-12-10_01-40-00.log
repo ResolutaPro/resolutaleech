@@ -1,0 +1,10 @@
+2025-12-10T01:40:00Z – Criação do projeto ResolutaLeech
+   - Criado app.py: Aplicação principal Flask com rotas REST API
+   - Criado downloaders/__init__.py: Módulo de downloaders
+   - Criado downloaders/base.py: Classe base abstrata para downloaders
+   - Criado downloaders/manager.py: Gerenciador central de downloads com threading
+   - Criado downloaders/direct.py: Downloader para links HTTP/HTTPS diretos
+   - Criado downloaders/mega.py: Downloader para MEGA.nz via megatools
+   - Criado templates/index.html: Interface web moderna com TailwindCSS
+   - Criado requirements.txt: Dependências Python (Flask, requests)
+   - Criado README.md: Documentação do projeto
