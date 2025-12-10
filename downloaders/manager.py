@@ -148,10 +148,10 @@ class DownloadManager:
                       if d['status'] in ('starting', 'downloading'))
     
     def is_megatools_available(self) -> bool:
-        """Verifica se megatools está disponível"""
+        """Verifica se MEGA.nz está disponível (via mega.py)"""
         for downloader in self.downloaders:
             if isinstance(downloader, MegaDownloader):
-                return downloader.megatools_available
+                return downloader.mega_available
         return False
     
     def get_supported_hosts(self) -> list:
